@@ -1,7 +1,7 @@
 
 tag:=v1.0.${TAG}
 images_name:=ci-cd-mern-k3s-backend
-repository:=bjnandi
+repository:=${REPO}
 
 all: build push
 

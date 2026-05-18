@@ -20,9 +20,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        run: 
-          cd client && make all TAG=${{ github.run_number }}
-          
-          cd ../server && make all TAG=${{ github.run_number }}
-
+        run: |
+          cd client && make all TAG=${{ github.run_number }} REPO=${{ secrets.DOCKER_USERNAME }}
+          cd ../server && make all TAG=${{ github.run_number }} REPO=${{ secrets.DOCKER_USERNAME }}
           echo "done"

@@ -31,9 +31,151 @@ jobs:
           proxy_port: 22
 
           script: |  
+            cat << 'EOF' > /tmp/mongo.yaml
+            apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: mongo-pvc
+            spec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 1Gi
+            ---
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: mongodb
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: mongodb
+              template:
+                metadata:
+                  labels:
+                    app: mongodb
+                spec:
+                  containers:
+                    - name: mongodb
+                      image: mongo:6
+                      ports:
+                        - containerPort: 27017
+                      env:
+                        - name: MONGO_INITDB_ROOT_USERNAME
+                          value: root
+                        - name: MONGO_INITDB_ROOT_PASSWORD
+                          value: secret
+                      volumeMounts:
+                        - name: mongo-data
+                          mountPath: /data/db
+                  volumes:
+                    - name: mongo-data
+                      persistentVolumeClaim:
+                        claimName: mongo-pvc
+            ---
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: mongodb
+            spec:
+              selector:
+                app: mongodb
+              ports:
+                - port: 27017
+                  targetPort: 27017
+            EOF
 
-            sudo kubectl set image deployment/client client=bjnandi/ci-cd-mern-k3s-frontend:v1.0.${{github.run_number }}
-            sudo kubectl set image deployment/server server=bjnandi/ci-cd-mern-k3s-backend:v1.0.${{github.run_number }}
+            cat << 'EOF' > /tmp/server.yaml
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: server
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: server
+              template:
+                metadata:
+                  labels:
+                    app: server
+                spec:
+                  containers:
+                    - name: server
+                      image: ${{ secrets.DOCKER_USERNAME }}/ci-cd-mern-k3s-backend:v1.0.${{github.run_number }}
+                      ports:
+                        - containerPort: 5000
+                      env:
+                        - name: CLOUDINARY_CLOUD_NAME
+                          value: db4ycmqeu
+                        - name: CLOUDINARY_API_KEY
+                          value: "256239732498631"
+                        - name: CLOUDINARY_API_SECRET
+                          value: nLv-IEG4arx1n9uHRbPOZuPOwXg
+                        - name: DB_USER
+                          value: root
+                        - name: DB_PASSWORD
+                          value: secret
+                        - name: DB_HOST
+                          value: mongodb
+                        - name: DB_PORT
+                          value: "27017"
+                        - name: DB_NAME
+                          value: mern_db
+            ---
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: server
+            spec:
+              selector:
+                app: server
+              type: NodePort
+              ports:
+                - port: 5000
+                  targetPort: 5000
+                  nodePort: 30005
+            EOF
 
-            # sudo kubectl set image deployment/server server=bjnandi/ci-cd-mern-k3s-backend:v1.0.$((${{github.run_number }}-1))
+            cat << 'EOF' > /tmp/client.yaml
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: client
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  app: client
+              template:
+                metadata:
+                  labels:
+                    app: client
+                spec:
+                  containers:
+                    - name: client
+                      image: ${{ secrets.DOCKER_USERNAME }}/ci-cd-mern-k3s-frontend:v1.0.${{github.run_number }}
+                      ports:
+                        - containerPort: 80
+            ---
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: client
+            spec:
+              selector:
+                app: client
+              type: LoadBalancer
+              ports:
+                - port: 80
+                  targetPort: 80
+            EOF
 
+            sudo kubectl apply -f /tmp/mongo.yaml
+            sudo kubectl apply -f /tmp/server.yaml
+            sudo kubectl apply -f /tmp/client.yaml
+
+            sudo kubectl set image deployment/client client=${{ secrets.DOCKER_USERNAME }}/ci-cd-mern-k3s-frontend:v1.0.${{github.run_number }}
+            sudo kubectl set image deployment/server server=${{ secrets.DOCKER_USERNAME }}/ci-cd-mern-k3s-backend:v1.0.${{github.run_number }}

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+        - name: server
+          # Placeholder image, will be overwritten by CI/CD
+          image: nginx:alpine
+          ports:
+            - containerPort: 5000
+          env:
+            - name: CLOUDINARY_CLOUD_NAME
+              value: db4ycmqeu
+            - name: CLOUDINARY_API_KEY
+              value: "256239732498631"
+            - name: CLOUDINARY_API_SECRET
+              value: nLv-IEG4arx1n9uHRbPOZuPOwXg
+            - name: DB_USER
+              value: root
+            - name: DB_PASSWORD
+              value: secret
+            - name: DB_HOST
+              value: mongodb
+            - name: DB_PORT
+              value: "27017"
+            - name: DB_NAME
+              value: mern_db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+spec:
+  selector:
+    app: server
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30005
