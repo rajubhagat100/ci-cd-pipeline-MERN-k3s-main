@@ -25,10 +25,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
 
-          proxy_host: ${{ secrets.EC2_HOST }}
-          proxy_username: ${{ secrets.EC2_USERNAME }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          proxy_port: 22
+
 
           script: |  
             cat << 'EOF' > /tmp/mongo.yaml
