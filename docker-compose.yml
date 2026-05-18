@@ -1,0 +1,40 @@
+services:
+  mongodb:
+    image: mongo:6
+    container_name: mern_mongodb
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: mern_db
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: mern_server
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: mern_client
+    ports:
+      - "3000:80" # Map to 3000 locally to avoid 80 port conflicts on Windows
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
